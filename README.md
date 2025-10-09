@@ -1,239 +1,308 @@
-# Full Stack FastAPI Template
+# FastAPI REST API Template
 
-<a href="https://github.com/fastapi/full-stack-fastapi-template/actions?query=workflow%3ATest" target="_blank"><img src="https://github.com/fastapi/full-stack-fastapi-template/workflows/Test/badge.svg" alt="Test"></a>
-<a href="https://coverage-badge.samuelcolvin.workers.dev/redirect/fastapi/full-stack-fastapi-template" target="_blank"><img src="https://coverage-badge.samuelcolvin.workers.dev/fastapi/full-stack-fastapi-template.svg" alt="Coverage"></a>
+Una plantilla limpia y moderna para crear APIs REST con FastAPI, lista para producción.
 
-## Technology Stack and Features
+## 🚀 Características
 
-- ⚡ [**FastAPI**](https://fastapi.tiangolo.com) for the Python backend API.
-    - 🧰 [SQLModel](https://sqlmodel.tiangolo.com) for the Python SQL database interactions (ORM).
-    - 🔍 [Pydantic](https://docs.pydantic.dev), used by FastAPI, for the data validation and settings management.
-    - 💾 [PostgreSQL](https://www.postgresql.org) as the SQL database.
-- 🚀 [React](https://react.dev) for the frontend.
-    - 💃 Using TypeScript, hooks, Vite, and other parts of a modern frontend stack.
-    - 🎨 [Chakra UI](https://chakra-ui.com) for the frontend components.
-    - 🤖 An automatically generated frontend client.
-    - 🧪 [Playwright](https://playwright.dev) for End-to-End testing.
-    - 🦇 Dark mode support.
-- 🐋 [Docker Compose](https://www.docker.com) for development and production.
-- 🔒 Secure password hashing by default.
-- 🔑 JWT (JSON Web Token) authentication.
-- 📫 Email based password recovery.
-- ✅ Tests with [Pytest](https://pytest.org).
-- 📞 [Traefik](https://traefik.io) as a reverse proxy / load balancer.
-- 🚢 Deployment instructions using Docker Compose, including how to set up a frontend Traefik proxy to handle automatic HTTPS certificates.
-- 🏭 CI (continuous integration) and CD (continuous deployment) based on GitHub Actions.
+- ⚡ **FastAPI** - Framework web moderno y rápido para APIs
+- 🗄️ **SQLModel** - ORM moderno que combina Pydantic + SQLAlchemy
+- 🔐 **JWT Authentication** - Autenticación segura con tokens JWT
+- 📧 **Email System** - Sistema completo de emails con templates MJML
+- 🗃️ **PostgreSQL** - Base de datos robusta con migraciones Alembic
+- 🧪 **Testing** - Suite completa de pruebas con Pytest
+- 📝 **Auto Documentation** - Documentación automática con OpenAPI/Swagger
+- 🔒 **Security** - Hash seguro de contraseñas con bcrypt
+- ⚙️ **Environment Config** - Configuración flexible por ambientes
 
-### Dashboard Login
+## 📋 Requisitos
 
-[![API docs](img/login.png)](https://github.com/fastapi/full-stack-fastapi-template)
+- Python 3.10+
+- PostgreSQL 12+
+- pip o poetry
 
-### Dashboard - Admin
+## 🛠️ Instalación
 
-[![API docs](img/dashboard.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Create User
-
-[![API docs](img/dashboard-create.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Items
-
-[![API docs](img/dashboard-items.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - User Settings
-
-[![API docs](img/dashboard-user-settings.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Dashboard - Dark Mode
-
-[![API docs](img/dashboard-dark.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-### Interactive API Documentation
-
-[![API docs](img/docs.png)](https://github.com/fastapi/full-stack-fastapi-template)
-
-## How To Use It
-
-You can **just fork or clone** this repository and use it as is.
-
-✨ It just works. ✨
-
-### How to Use a Private Repository
-
-If you want to have a private repository, GitHub won't allow you to simply fork it as it doesn't allow changing the visibility of forks.
-
-But you can do the following:
-
-- Create a new GitHub repo, for example `my-full-stack`.
-- Clone this repository manually, set the name with the name of the project you want to use, for example `my-full-stack`:
+### 1. Clonar el repositorio
 
 ```bash
-git clone git@github.com:fastapi/full-stack-fastapi-template.git my-full-stack
+git clone <tu-repositorio>
+cd fastapi-template
 ```
 
-- Enter into the new directory:
+### 2. Crear entorno virtual
 
 ```bash
-cd my-full-stack
+python -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 ```
 
-- Set the new origin to your new repository, copy it from the GitHub interface, for example:
+### 3. Instalar dependencias
 
 ```bash
-git remote set-url origin git@github.com:octocat/my-full-stack.git
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # Para desarrollo
 ```
 
-- Add this repo as another "remote" to allow you to get updates later:
+### 4. Configurar variables de entorno
+
+Copia el archivo `.env.example` a `.env` y configura las variables:
 
 ```bash
-git remote add upstream git@github.com:fastapi/full-stack-fastapi-template.git
+cp .env.example .env
 ```
 
-- Push the code to your new repository:
+Edita `.env` con tus valores:
+
+```env
+PROJECT_NAME="Mi API"
+SECRET_KEY="tu-clave-secreta-aqui"
+POSTGRES_SERVER="localhost"
+POSTGRES_PORT=5432
+POSTGRES_USER="postgres"
+POSTGRES_PASSWORD="tu-password"
+POSTGRES_DB="mi_api"
+FIRST_SUPERUSER="admin@example.com"
+FIRST_SUPERUSER_PASSWORD="admin123"
+SMTP_HOST="smtp.gmail.com"
+SMTP_USER="tu-email@gmail.com"
+SMTP_PASSWORD="tu-password-app"
+EMAILS_FROM_EMAIL="tu-email@gmail.com"
+```
+
+### 5. Configurar base de datos
 
 ```bash
-git push -u origin master
+# Crear la base de datos en PostgreSQL
+createdb mi_api
+
+# Ejecutar migraciones
+alembic upgrade head
 ```
 
-### Update From the Original Template
+### 6. Ejecutar la aplicación
 
-After cloning the repository, and after doing changes, you might want to get the latest changes from this original template.
+**Opción 1: Con uvicorn directamente**
+```bash
+uvicorn app.main:app --reload
+```
 
-- Make sure you added the original repository as a remote, you can check it with:
+**Opción 2: Con el script de inicio**
+```bash
+python run.py
+```
+
+**Opción 3: Con uvicorn y configuración personalizada**
+```bash
+uvicorn app.main:app --reload --host localhost --port 8000
+```
+
+La API estará disponible en: http://localhost:8000
+
+## 📚 Documentación
+
+- **API Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **OpenAPI JSON**: http://localhost:8000/openapi.json
+
+## 🏗️ Estructura del Proyecto
+
+```
+/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # Punto de entrada de la aplicación
+│   ├── api/                    # Rutas de la API
+│   │   ├── __init__.py
+│   │   ├── main.py            # Router principal
+│   │   ├── deps.py            # Dependencias (auth, DB)
+│   │   └── routes/            # Rutas organizadas por funcionalidad
+│   │       ├── login.py       # Autenticación
+│   │       ├── users.py       # Gestión de usuarios
+│   │       ├── items.py       # CRUD de items
+│   │       └── utils.py       # Utilidades
+│   ├── core/                  # Configuración central
+│   │   ├── config.py         # Configuración y variables de entorno
+│   │   ├── security.py       # Funciones de seguridad
+│   │   └── db.py             # Conexión a base de datos
+│   ├── models.py              # Modelos SQLModel
+│   ├── crud.py               # Operaciones de base de datos
+│   └── utils.py              # Utilidades generales
+├── alembic/                  # Migraciones de base de datos
+│   ├── env.py               # Configuración de Alembic
+│   ├── script.py.mako       # Template para migraciones
+│   └── versions/            # Archivos de migración
+├── requirements.txt          # Dependencias de producción
+├── requirements-dev.txt      # Dependencias de desarrollo
+├── alembic.ini              # Configuración de Alembic
+├── .env.example             # Ejemplo de variables de entorno
+├── run.py                   # Script de inicio
+└── README.md
+```
+
+## 🔐 Autenticación
+
+La API usa JWT (JSON Web Tokens) para autenticación:
+
+1. **Registro**: `POST /api/v1/users/signup`
+2. **Login**: `POST /api/v1/login/access-token`
+3. **Usar token**: Incluir `Authorization: Bearer <token>` en headers
+
+### Ejemplo de uso:
 
 ```bash
-git remote -v
+# Login
+curl -X POST "http://localhost:8000/api/v1/login/access-token" \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=admin@example.com&password=admin123"
 
-origin    git@github.com:octocat/my-full-stack.git (fetch)
-origin    git@github.com:octocat/my-full-stack.git (push)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (fetch)
-upstream    git@github.com:fastapi/full-stack-fastapi-template.git (push)
+# Usar token
+curl -X GET "http://localhost:8000/api/v1/users/me" \
+     -H "Authorization: Bearer <tu-token>"
 ```
 
-- Pull the latest changes without merging:
+## 🧪 Testing
 
 ```bash
-git pull --no-commit upstream master
+# Ejecutar todas las pruebas
+pytest
+
+# Con cobertura
+pytest --cov=app
+
+# Pruebas específicas
+pytest tests/api/routes/test_login.py
 ```
 
-This will download the latest changes from this template without committing them, that way you can check everything is right before committing.
+## 🗄️ Base de Datos
 
-- If there are conflicts, solve them in your editor.
-
-- Once you are done, commit the changes:
+### Migraciones
 
 ```bash
-git merge --continue
+# Crear nueva migración
+alembic revision --autogenerate -m "descripción del cambio"
+
+# Aplicar migraciones
+alembic upgrade head
+
+# Revertir migración
+alembic downgrade -1
 ```
 
-### Configure
+### Modelos principales
 
-You can then update configs in the `.env` files to customize your configurations.
+- **User**: Usuarios del sistema
+- **Item**: Items asociados a usuarios
+- **Token**: Tokens JWT
 
-Before deploying it, make sure you change at least the values for:
+## 📧 Sistema de Emails
 
-- `SECRET_KEY`
-- `FIRST_SUPERUSER_PASSWORD`
-- `POSTGRES_PASSWORD`
+La aplicación incluye un sistema completo de emails:
 
-You can (and should) pass these as environment variables from secrets.
+- **Registro**: Email de bienvenida
+- **Recuperación**: Reset de contraseña
+- **Templates**: Emails HTML con MJML
 
-Read the [deployment.md](./deployment.md) docs for more details.
+### Configuración SMTP
 
-### Generate Secret Keys
+Configura las variables SMTP en `.env`:
 
-Some environment variables in the `.env` file have a default value of `changethis`.
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu-email@gmail.com
+SMTP_PASSWORD=tu-password-app
+EMAILS_FROM_EMAIL=tu-email@gmail.com
+```
 
-You have to change them with a secret key, to generate secret keys you can run the following command:
+## 🚀 Despliegue
+
+### Variables de entorno para producción
+
+```env
+ENVIRONMENT=production
+SECRET_KEY=clave-super-secreta-de-produccion
+POSTGRES_PASSWORD=password-super-seguro
+FIRST_SUPERUSER_PASSWORD=password-admin-seguro
+```
+
+### Comando de producción
 
 ```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-Copy the content and use that as password / secret key. And run that again to generate another secure key.
+## 🔧 Desarrollo
 
-## How To Use It - Alternative With Copier
-
-This repository also supports generating a new project using [Copier](https://copier.readthedocs.io).
-
-It will copy all the files, ask you configuration questions, and update the `.env` files with your answers.
-
-### Install Copier
-
-You can install Copier with:
+### Pre-commit hooks
 
 ```bash
-pip install copier
+pre-commit install
+pre-commit run --all-files
 ```
 
-Or better, if you have [`pipx`](https://pipx.pypa.io/), you can run it with:
+### Linting
 
 ```bash
-pipx install copier
+ruff check .
+ruff format .
 ```
 
-**Note**: If you have `pipx`, installing copier is optional, you could run it directly.
-
-### Generate a Project With Copier
-
-Decide a name for your new project's directory, you will use it below. For example, `my-awesome-project`.
-
-Go to the directory that will be the parent of your project, and run the command with your project's name:
+### Type checking
 
 ```bash
-copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
+mypy app/
 ```
 
-If you have `pipx` and you didn't install `copier`, you can run it directly:
+## 📝 API Endpoints
 
-```bash
-pipx run copier copy https://github.com/fastapi/full-stack-fastapi-template my-awesome-project --trust
-```
+### Autenticación
+- `POST /api/v1/login/access-token` - Login
+- `POST /api/v1/login/test-token` - Verificar token
+- `POST /api/v1/password-recovery/{email}` - Recuperar contraseña
+- `POST /api/v1/reset-password/` - Resetear contraseña
 
-**Note** the `--trust` option is necessary to be able to execute a [post-creation script](https://github.com/fastapi/full-stack-fastapi-template/blob/master/.copier/update_dotenv.py) that updates your `.env` files.
+### Usuarios
+- `GET /api/v1/users/` - Listar usuarios (admin)
+- `POST /api/v1/users/` - Crear usuario (admin)
+- `GET /api/v1/users/me` - Mi perfil
+- `PATCH /api/v1/users/me` - Actualizar mi perfil
+- `PATCH /api/v1/users/me/password` - Cambiar contraseña
+- `DELETE /api/v1/users/me` - Eliminar mi cuenta
+- `POST /api/v1/users/signup` - Registro público
+- `GET /api/v1/users/{user_id}` - Obtener usuario por ID
+- `PATCH /api/v1/users/{user_id}` - Actualizar usuario (admin)
+- `DELETE /api/v1/users/{user_id}` - Eliminar usuario (admin)
 
-### Input Variables
+### Items
+- `GET /api/v1/items/` - Listar mis items
+- `POST /api/v1/items/` - Crear item
+- `GET /api/v1/items/{item_id}` - Obtener item
+- `PATCH /api/v1/items/{item_id}` - Actualizar item
+- `DELETE /api/v1/items/{item_id}` - Eliminar item
 
-Copier will ask you for some data, you might want to have at hand before generating the project.
+### Utilidades
+- `GET /api/v1/utils/health-check/` - Health check
 
-But don't worry, you can just update any of that in the `.env` files afterwards.
+## 🤝 Contribuir
 
-The input variables, with their default values (some auto generated) are:
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
-- `project_name`: (default: `"FastAPI Project"`) The name of the project, shown to API users (in .env).
-- `stack_name`: (default: `"fastapi-project"`) The name of the stack used for Docker Compose labels and project name (no spaces, no periods) (in .env).
-- `secret_key`: (default: `"changethis"`) The secret key for the project, used for security, stored in .env, you can generate one with the method above.
-- `first_superuser`: (default: `"admin@example.com"`) The email of the first superuser (in .env).
-- `first_superuser_password`: (default: `"changethis"`) The password of the first superuser (in .env).
-- `smtp_host`: (default: "") The SMTP server host to send emails, you can set it later in .env.
-- `smtp_user`: (default: "") The SMTP server user to send emails, you can set it later in .env.
-- `smtp_password`: (default: "") The SMTP server password to send emails, you can set it later in .env.
-- `emails_from_email`: (default: `"info@example.com"`) The email account to send emails from, you can set it later in .env.
-- `postgres_password`: (default: `"changethis"`) The password for the PostgreSQL database, stored in .env, you can generate one with the method above.
-- `sentry_dsn`: (default: "") The DSN for Sentry, if you are using it, you can set it later in .env.
+## 📄 Licencia
 
-## Backend Development
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-Backend docs: [backend/README.md](./backend/README.md).
+## 🆘 Soporte
 
-## Frontend Development
+Si tienes problemas o preguntas:
 
-Frontend docs: [frontend/README.md](./frontend/README.md).
+1. Revisa la documentación de FastAPI: https://fastapi.tiangolo.com/
+2. Abre un issue en el repositorio
+3. Consulta la documentación automática en `/docs`
 
-## Deployment
+---
 
-Deployment docs: [deployment.md](./deployment.md).
-
-## Development
-
-General development docs: [development.md](./development.md).
-
-This includes using Docker Compose, custom local domains, `.env` configurations, etc.
-
-## Release Notes
-
-Check the file [release-notes.md](./release-notes.md).
-
-## License
-
-The Full Stack FastAPI Template is licensed under the terms of the MIT license.
+**¡Disfruta construyendo tu API con FastAPI!** 🚀
