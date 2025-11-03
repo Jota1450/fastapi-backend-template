@@ -295,6 +295,72 @@ ruff format .
 mypy app/
 ```
 
+## 📝 Formato de Respuestas Estándar
+
+Todas las respuestas de la API siguen un formato estándar consistente con los siguientes atributos:
+
+```json
+{
+  "success": true,
+  "data": {...},
+  "message": "Mensaje descriptivo"
+}
+```
+
+### Atributos
+
+- **`success`** (bool): Indica si la operación fue exitosa (`true`) o falló (`false`)
+- **`data`** (Any | null): Datos de la respuesta. Puede ser un objeto, array, o `null` según el endpoint
+- **`message`** (string | null): Mensaje descriptivo opcional sobre el resultado de la operación
+
+### Ejemplos
+
+**Respuesta exitosa (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "full_name": "John Doe"
+  },
+  "message": "User retrieved successfully"
+}
+```
+
+**Respuesta de error (400):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Invalid token"
+}
+```
+
+**Respuesta de error con datos (409):**
+```json
+{
+  "success": false,
+  "data": {
+    "field": "email",
+    "existing_value": "user@example.com"
+  },
+  "message": "User with this email already exists"
+}
+```
+
+### Códigos de Estado HTTP
+
+Los endpoints retornan códigos de estado HTTP apropiados junto con el formato estándar:
+- `200` - Operación exitosa
+- `201` - Recurso creado exitosamente
+- `400` - Error de validación o solicitud incorrecta
+- `401` - No autorizado
+- `403` - Prohibido (sin permisos suficientes)
+- `404` - Recurso no encontrado
+- `409` - Conflicto (recurso ya existe)
+- `500` - Error interno del servidor
+
 ## 📝 API Endpoints
 
 ### Autenticación

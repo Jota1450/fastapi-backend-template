@@ -6,12 +6,12 @@ All endpoints validate configuration before executing.
 from datetime import timedelta
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import RedirectResponse
 from sqlmodel import Session
 
 from app.auth.deps import SessionDep
-from app.auth.models import Token, UserPublic
+from app.auth.models import Token
 from app.auth.oauth import (
     create_or_update_user_from_google,
     get_google_oauth_client,
@@ -22,6 +22,7 @@ from app.auth.oauth import (
 from app.auth.security import create_access_token
 from app.auth import services as auth_services
 from app.config.config import settings
+from app.config.response import StandardResponse, success_response
 
 router = APIRouter(prefix="/oauth", tags=["auth", "oauth"])
 
@@ -60,7 +61,7 @@ async def google_callback(
     session: SessionDep,
     code: str = Query(...),
     state: str = Query(None),
-) -> dict[str, Any]:
+) -> StandardResponse:
     """
     Handle Google OAuth2 callback.
     Creates or updates user and returns access token.
@@ -125,7 +126,13 @@ async def google_callback(
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         api_token = create_access_token(user.id, expires_delta=access_token_expires)
 
-        return Token(access_token=api_token, token_type="bearer")
+        token_data = Token(access_token=api_token, token_type="bearer")
+        response, status_code = success_response(
+            data=token_data.model_dump(),
+            message="Google OAuth login successful",
+            status_code=200,
+        )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
     except HTTPException:
         raise

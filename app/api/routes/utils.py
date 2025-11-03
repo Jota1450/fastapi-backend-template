@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from pydantic.networks import EmailStr
 
 from app.api.deps import get_current_active_superuser
-from app.auth.models import Message
+from app.config.response import StandardResponse, success_response
 from app.utils.utils import generate_test_email, send_email
 
 router = APIRouter(prefix="/utils", tags=["utils"])
@@ -11,9 +11,8 @@ router = APIRouter(prefix="/utils", tags=["utils"])
 @router.post(
     "/test-email/",
     dependencies=[Depends(get_current_active_superuser)],
-    status_code=201,
 )
-def test_email(email_to: EmailStr) -> Message:
+def test_email(email_to: EmailStr) -> StandardResponse:
     """
     Test emails.
     """
@@ -23,9 +22,19 @@ def test_email(email_to: EmailStr) -> Message:
         subject=email_data.subject,
         html_content=email_data.html_content,
     )
-    return Message(message="Test email sent")
+    response, status_code = success_response(
+        data=None,
+        message="Test email sent",
+        status_code=201,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
 @router.get("/health-check/")
-async def health_check() -> bool:
-    return True
+async def health_check() -> StandardResponse:
+    response, status_code = success_response(
+        data={"status": "healthy"},
+        message="Service is healthy",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")

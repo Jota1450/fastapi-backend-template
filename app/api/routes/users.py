@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlmodel import func, select
 
 from app.auth import services as auth_services
@@ -11,18 +11,17 @@ from app.auth.deps import (
     get_current_active_superuser,
 )
 from app.auth.models import (
-    Message,
     UpdatePassword,
     User,
     UserCreate,
     UserPublic,
     UserRegister,
-    UsersPublic,
     UserUpdate,
     UserUpdateMe,
 )
 from app.auth.security import get_password_hash, verify_password
 from app.config.config import settings
+from app.config.response import StandardResponse, error_response, success_response
 from app.utils.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -31,9 +30,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get(
     "/",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=UsersPublic,
 )
-def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> StandardResponse:
     """
     Retrieve users.
     """
@@ -44,22 +42,29 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     statement = select(User).offset(skip).limit(limit)
     users = session.exec(statement).all()
 
-    return UsersPublic(data=users, count=count)
+    users_data = [UserPublic.model_validate(user).model_dump() for user in users]
+    response, status_code = success_response(
+        data={"items": users_data, "count": count},
+        message="Users retrieved successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
 @router.post(
-    "/", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+    "/", dependencies=[Depends(get_current_active_superuser)]
 )
-def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
+def create_user(*, session: SessionDep, user_in: UserCreate) -> StandardResponse:
     """
     Create new user.
     """
     user = auth_services.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise HTTPException(
+        response, status_code = error_response(
+            message="The user with this email already exists in the system.",
             status_code=400,
-            detail="The user with this email already exists in the system.",
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
     user = auth_services.create_user(session=session, user_create=user_in)
     if settings.emails_enabled and user_in.email:
@@ -71,13 +76,18 @@ def create_user(*, session: SessionDep, user_in: UserCreate) -> Any:
             subject=email_data.subject,
             html_content=email_data.html_content,
         )
-    return user
+    response, status_code = success_response(
+        data=UserPublic.model_validate(user).model_dump(),
+        message="User created successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.patch("/me", response_model=UserPublic)
+@router.patch("/me")
 def update_user_me(
     *, session: SessionDep, user_in: UserUpdateMe, current_user: CurrentUser
-) -> Any:
+) -> StandardResponse:
     """
     Update own user.
     """
@@ -85,139 +95,221 @@ def update_user_me(
     if user_in.email:
         existing_user = auth_services.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
+            response, status_code = error_response(
+                message="User with this email already exists",
+                status_code=409,
             )
+            return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
     session.add(current_user)
     session.commit()
     session.refresh(current_user)
-    return current_user
+    response, status_code = success_response(
+        data=UserPublic.model_validate(current_user).model_dump(),
+        message="User updated successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.patch("/me/password", response_model=Message)
+@router.patch("/me/password")
 def update_password_me(
     *, session: SessionDep, body: UpdatePassword, current_user: CurrentUser
-) -> Any:
+) -> StandardResponse:
     """
     Update own password.
     """
     if not verify_password(body.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect password")
-    if body.current_password == body.new_password:
-        raise HTTPException(
-            status_code=400, detail="New password cannot be the same as the current one"
+        response, status_code = error_response(
+            message="Incorrect password",
+            status_code=400,
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
+    if body.current_password == body.new_password:
+        response, status_code = error_response(
+            message="New password cannot be the same as the current one",
+            status_code=400,
+        )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     hashed_password = get_password_hash(body.new_password)
     current_user.hashed_password = hashed_password
     session.add(current_user)
     session.commit()
-    return Message(message="Password updated successfully")
+    response, status_code = success_response(
+        data=None,
+        message="Password updated successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
+@router.get("/me")
+def read_user_me(current_user: CurrentUser) -> StandardResponse:
     """
     Get current user.
     """
-    return current_user
+    response, status_code = success_response(
+        data=UserPublic.model_validate(current_user).model_dump(),
+        message="User retrieved successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.delete("/me", response_model=Message)
-def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+@router.delete("/me")
+def delete_user_me(session: SessionDep, current_user: CurrentUser) -> StandardResponse:
     """
     Delete own user.
     """
     if current_user.is_superuser:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
+        response, status_code = error_response(
+            message="Super users are not allowed to delete themselves",
+            status_code=403,
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     session.delete(current_user)
     session.commit()
-    return Message(message="User deleted successfully")
+    response, status_code = success_response(
+        data=None,
+        message="User deleted successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.post("/signup", response_model=UserPublic, tags=["auth"])
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
+@router.post("/signup", tags=["auth"])
+def register_user(session: SessionDep, user_in: UserRegister) -> StandardResponse:
     """
     Create new user without the need to be logged in.
     """
     user = auth_services.get_user_by_email(session=session, email=user_in.email)
     if user:
-        raise HTTPException(
+        response, status_code = error_response(
+            message="The user with this email already exists in the system",
             status_code=400,
-            detail="The user with this email already exists in the system",
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     user_create = UserCreate.model_validate(user_in)
     user = auth_services.create_user(session=session, user_create=user_create)
-    return user
+    response, status_code = success_response(
+        data=UserPublic.model_validate(user).model_dump(),
+        message="User registered successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
-@router.get("/{user_id}", response_model=UserPublic)
+@router.get("/{user_id}")
 def read_user_by_id(
     user_id: uuid.UUID, session: SessionDep, current_user: CurrentUser
-) -> Any:
+) -> StandardResponse:
     """
     Get a specific user by id.
     """
     user = session.get(User, user_id)
-    if user == current_user:
-        return user
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=403,
-            detail="The user doesn't have enough privileges",
+    if not user:
+        response, status_code = error_response(
+            message="User not found",
+            status_code=404,
         )
-    return user
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
+    if user == current_user:
+        response, status_code = success_response(
+            data=UserPublic.model_validate(user).model_dump(),
+            message="User retrieved successfully",
+            status_code=200,
+        )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
+    if not current_user.is_superuser:
+        response, status_code = error_response(
+            message="The user doesn't have enough privileges",
+            status_code=403,
+        )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
+    response, status_code = success_response(
+        data=UserPublic.model_validate(user).model_dump(),
+        message="User retrieved successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
 @router.patch(
     "/{user_id}",
     dependencies=[Depends(get_current_active_superuser)],
-    response_model=UserPublic,
 )
 def update_user(
     *,
     session: SessionDep,
     user_id: uuid.UUID,
     user_in: UserUpdate,
-) -> Any:
+) -> StandardResponse:
     """
     Update a user.
     """
 
     db_user = session.get(User, user_id)
     if not db_user:
-        raise HTTPException(
+        response, status_code = error_response(
+            message="The user with this id does not exist in the system",
             status_code=404,
-            detail="The user with this id does not exist in the system",
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     if user_in.email:
         existing_user = auth_services.get_user_by_email(session=session, email=user_in.email)
         if existing_user and existing_user.id != user_id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
+            response, status_code = error_response(
+                message="User with this email already exists",
+                status_code=409,
             )
+            return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
     db_user = auth_services.update_user(session=session, db_user=db_user, user_in=user_in)
-    return db_user
+    response, status_code = success_response(
+        data=UserPublic.model_validate(db_user).model_dump(),
+        message="User updated successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
 
 
 @router.delete("/{user_id}", dependencies=[Depends(get_current_active_superuser)])
 def delete_user(
     session: SessionDep, current_user: CurrentUser, user_id: uuid.UUID
-) -> Message:
+) -> StandardResponse:
     """
     Delete a user.
     """
     user = session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if user == current_user:
-        raise HTTPException(
-            status_code=403, detail="Super users are not allowed to delete themselves"
+        response, status_code = error_response(
+            message="User not found",
+            status_code=404,
         )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
+    if user == current_user:
+        response, status_code = error_response(
+            message="Super users are not allowed to delete themselves",
+            status_code=403,
+        )
+        return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")
+    
     session.delete(user)
     session.commit()
-    return Message(message="User deleted successfully")
+    response, status_code = success_response(
+        data=None,
+        message="User deleted successfully",
+        status_code=200,
+    )
+    return Response(content=response.model_dump_json(), status_code=status_code, media_type="application/json")

@@ -4,7 +4,8 @@ try:
 except ImportError:
     SENTRY_AVAILABLE = False
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
@@ -14,6 +15,7 @@ from app.auth.models import Role, User, UserRole  # noqa
 
 from app.api.main import api_router
 from app.config.config import settings
+from app.config.response import error_response
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -40,3 +42,34 @@ if settings.all_cors_origins:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
+# Exception handlers for standard response format
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """
+    Handler for HTTPException to return standard response format.
+    """
+    response, status_code = error_response(
+        message=exc.detail,
+        status_code=exc.status_code,
+    )
+    return JSONResponse(
+        content=response.model_dump(),
+        status_code=status_code,
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Handler for general exceptions to return standard response format.
+    """
+    response, status_code = error_response(
+        message="Internal server error",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+    return JSONResponse(
+        content=response.model_dump(),
+        status_code=status_code,
+    )

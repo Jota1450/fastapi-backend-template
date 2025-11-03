@@ -10,7 +10,7 @@ psycopg[binary]>=3.1.13,<4.0.0
 
 # Authentication & Security
 passlib[bcrypt]>=1.7.4,<2.0.0
-bcrypt==4.3.0
+bcrypt>=3.2.0,<4.0.0  # Version 4.x incompatible with passlib 1.7.4
 pyjwt>=2.8.0,<3.0.0
 authlib>=1.2.0
 
