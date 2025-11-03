@@ -8,6 +8,10 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
+# IMPORTANT: Import all SQLModel models here so they are registered with SQLAlchemy
+# This ensures relationships and foreign keys are properly configured before any DB operations
+from app.auth.models import Role, User, UserRole  # noqa
+
 from app.api.main import api_router
 from app.config.config import settings
 

@@ -7,6 +7,7 @@ Una plantilla limpia y moderna para crear APIs REST con FastAPI, lista para prod
 - ⚡ **FastAPI** - Framework web moderno y rápido para APIs
 - 🗄️ **SQLModel** - ORM moderno que combina Pydantic + SQLAlchemy
 - 🔐 **JWT Authentication** - Autenticación segura con tokens JWT
+- 🔑 **OAuth2 Support** - Autenticación con Google OAuth2 (opcional)
 - 📧 **Email System** - Sistema completo de emails con templates MJML
 - 🗃️ **PostgreSQL** - Base de datos robusta con migraciones Alembic
 - 🧪 **Testing** - Suite completa de pruebas con Pytest
@@ -69,7 +70,30 @@ SMTP_PASSWORD="tu-password-app"
 EMAILS_FROM_EMAIL="tu-email@gmail.com"
 ```
 
-### 5. Configurar base de datos
+### 5. Configurar Google OAuth (Opcional)
+
+El proyecto funciona correctamente sin Google OAuth configurado. Si deseas habilitar el inicio de sesión con Google:
+
+1. **Obtener credenciales de Google Cloud Console:**
+   - Ve a [Google Cloud Console](https://console.cloud.google.com/)
+   - Crea un nuevo proyecto o selecciona uno existente
+   - Habilita la API de Google+ (o Google Identity)
+   - Ve a "Credenciales" → "Crear credenciales" → "ID de cliente OAuth 2.0"
+   - Configura:
+     - Tipo de aplicación: Aplicación web
+     - URI de redirección autorizada: `http://localhost:8000/api/v1/oauth/google/callback` (desarrollo)
+   - Copia el **ID de cliente** y el **Secreto de cliente**
+
+2. **Configurar variables en `.env`:**
+```env
+GOOGLE_CLIENT_ID="tu-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="tu-client-secret"
+GOOGLE_REDIRECT_URI="http://localhost:8000/api/v1/oauth/google/callback"
+```
+
+**Nota:** Si no configuras Google OAuth, el proyecto funcionará normalmente sin estos endpoints.
+
+### 6. Configurar base de datos
 
 ```bash
 # Crear la base de datos en PostgreSQL
@@ -79,7 +103,7 @@ createdb mi_api
 alembic upgrade head
 ```
 
-### 6. Ejecutar la aplicación
+### 7. Ejecutar la aplicación
 
 **Opción 1: Con uvicorn directamente**
 ```bash
@@ -118,7 +142,6 @@ La API estará disponible en: http://localhost:8000
 │   │   └── routes/            # Rutas organizadas por funcionalidad
 │   │       ├── login.py       # Autenticación
 │   │       ├── users.py       # Gestión de usuarios
-│   │       ├── items.py       # CRUD de items
 │   │       └── utils.py       # Utilidades
 │   ├── core/                  # Configuración central
 │   │   ├── config.py         # Configuración y variables de entorno
@@ -143,9 +166,29 @@ La API estará disponible en: http://localhost:8000
 
 La API usa JWT (JSON Web Tokens) para autenticación:
 
+### Autenticación con Email/Password
+
 1. **Registro**: `POST /api/v1/users/signup`
 2. **Login**: `POST /api/v1/login/access-token`
 3. **Usar token**: Incluir `Authorization: Bearer <token>` en headers
+
+### Autenticación con Google OAuth (Opcional)
+
+Si Google OAuth está configurado, los usuarios pueden iniciar sesión con su cuenta de Google:
+
+1. **Iniciar login con Google**: `GET /api/v1/oauth/google/login`
+   - Redirige a Google para autorización
+   - El usuario autoriza la aplicación en Google
+
+2. **Callback de Google**: `GET /api/v1/oauth/google/callback`
+   - Google redirige aquí después de la autorización
+   - Crea automáticamente un usuario si no existe (con el email de Google)
+   - Vincula la cuenta de Google a un usuario existente si el email coincide
+   - Retorna un token JWT para usar en la API
+
+3. **Usar token**: Incluir `Authorization: Bearer <token>` en headers
+
+**Nota:** Si Google OAuth no está configurado, estos endpoints no estarán disponibles y el proyecto funcionará normalmente con autenticación email/password.
 
 ### Ejemplo de uso:
 
@@ -191,7 +234,6 @@ alembic downgrade -1
 ### Modelos principales
 
 - **User**: Usuarios del sistema
-- **Item**: Items asociados a usuarios
 - **Token**: Tokens JWT
 
 ## 📧 Sistema de Emails
@@ -256,10 +298,12 @@ mypy app/
 ## 📝 API Endpoints
 
 ### Autenticación
-- `POST /api/v1/login/access-token` - Login
+- `POST /api/v1/login/access-token` - Login con email/password
 - `POST /api/v1/login/test-token` - Verificar token
 - `POST /api/v1/password-recovery/{email}` - Recuperar contraseña
 - `POST /api/v1/reset-password/` - Resetear contraseña
+- `GET /api/v1/oauth/google/login` - Iniciar login con Google (solo si está configurado)
+- `GET /api/v1/oauth/google/callback` - Callback de Google OAuth (solo si está configurado)
 
 ### Usuarios
 - `GET /api/v1/users/` - Listar usuarios (admin)
@@ -272,13 +316,6 @@ mypy app/
 - `GET /api/v1/users/{user_id}` - Obtener usuario por ID
 - `PATCH /api/v1/users/{user_id}` - Actualizar usuario (admin)
 - `DELETE /api/v1/users/{user_id}` - Eliminar usuario (admin)
-
-### Items
-- `GET /api/v1/items/` - Listar mis items
-- `POST /api/v1/items/` - Crear item
-- `GET /api/v1/items/{item_id}` - Obtener item
-- `PATCH /api/v1/items/{item_id}` - Actualizar item
-- `DELETE /api/v1/items/{item_id}` - Eliminar item
 
 ### Utilidades
 - `GET /api/v1/utils/health-check/` - Health check

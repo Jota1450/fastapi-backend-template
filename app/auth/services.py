@@ -7,9 +7,17 @@ from app.auth.models import User, UserCreate, UserUpdate
 
 
 def create_user(*, session: Session, user_create: UserCreate) -> User:
-    db_obj = User.model_validate(
-        user_create, update={"hashed_password": get_password_hash(user_create.password)}
-    )
+    """
+    Create a new user. Password is optional for OAuth users.
+    Must have either password or oauth_provider_data.
+    """
+    update_data = {}
+    
+    # Hash password if provided (regular user)
+    if user_create.password:
+        update_data["hashed_password"] = get_password_hash(user_create.password)
+    
+    db_obj = User.model_validate(user_create, update=update_data)
     session.add(db_obj)
     session.commit()
     session.refresh(db_obj)
@@ -37,8 +45,15 @@ def get_user_by_email(*, session: Session, email: str) -> User | None:
 
 
 def authenticate(*, session: Session, email: str, password: str) -> User | None:
+    """
+    Authenticate user with email and password.
+    Only works for users with password (not OAuth-only users).
+    """
     db_user = get_user_by_email(session=session, email=email)
     if not db_user:
+        return None
+    # OAuth users without password cannot authenticate this way
+    if not db_user.hashed_password:
         return None
     if not verify_password(password, db_user.hashed_password):
         return None

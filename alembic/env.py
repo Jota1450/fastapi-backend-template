@@ -18,7 +18,9 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from app.items.models import SQLModel  # noqa
+# IMPORTANT: Import all SQLModel models here so they are registered with SQLAlchemy
+# This ensures relationships and foreign keys are properly configured
+from app.auth.models import Role, SQLModel, User, UserRole  # noqa
 from app.config.config import settings # noqa
 
 target_metadata = SQLModel.metadata
